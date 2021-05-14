@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="subfolw" doc:id="79e824b7-ddf9-4427-bfa0-5723089601e1" >
+		<set-variable value="#[payload.productName default null]" doc:name="name" doc:id="4bc37bc2-81de-4192-adbf-9c723cd08fde" variableName="name"/>
+		<set-variable value="#[payload.productVendor default null]" doc:name="vendor" doc:id="a0c06d09-944c-47b4-b89a-e90df17aec5d" variableName="vendor"/>
+		<set-variable value="#[payload.productDescription default null]" doc:name="Desc" doc:id="a5c07929-6317-4c36-bd0d-e737be5e01e4" variableName="Desc"/>
+		<set-variable value="#[payload.quantityInStock default null]" doc:name="stock" doc:id="170ab1eb-f8dd-4941-b744-5a453f3191a4" variableName="stock"/>
+		<set-variable value="#[payload.buyPrice default null]" doc:name="price" doc:id="1f5769bb-932f-4af6-ac17-de9e1f7855ac" variableName="price"/>
+	</sub-flow>
+	<flow name="getAllFlow" doc:id="699adb8d-913b-4e43-8f12-6e1e6892280c" >
+		<db:select doc:name="Fetch Records from GCP" doc:id="98129eaa-7da9-4fd3-a609-c13a3a06c1ad" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from Products;]]></db:sql>
+		</db:select>
+		<ee:transform doc:name="Convet into Json" doc:id="5e184b38-a200-43db-81ed-1e20bb7e5123" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map{
+	ProductCode: $.productCode,
+	ProductName: $.productName,
+	ProductVendor: $.productVendor,
+	ProductDescription: $.productDescription,
+	QuantityInStock: $.quantityInStock,
+	BuyPrice: $.buyPrice
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getIDFlow" doc:id="1bf4cabd-1be6-47a8-9869-997bd9fdc229" >
+		<db:query-single doc:name="Fetch Single Record" doc:id="46d61865-7b28-433f-bcae-957ca6149950" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from Products where productcode=:code;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	'code': vars.productCode
+}]]]></db:input-parameters>
+		</db:query-single>
+		<ee:transform doc:name="Converted to  Json" doc:id="1e032a23-6cbc-44a4-b29b-e11454cf5af4" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	ProductCode: payload.productCode,
+	ProductName: payload.productName,
+	ProductVendor: payload.productVendor,
+	ProductDescription: payload.productDescription,
+	QuantityInStock: payload.quantityInStock,
+	BuyPrice: payload.buyPrice
+
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="deleteFlow" doc:id="c0f0a53a-5832-434a-a228-fd572796e7c9" >
+		<db:delete doc:name="Delete a Record" doc:id="21485a27-ec1f-40ca-b504-d9cc2dedbfce" config-ref="Database_Config">
+			<db:sql ><![CDATA[delete from Products where productCode=:code;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	'code': vars.productCode
+}]]]></db:input-parameters>
+		</db:delete>
+		<ee:transform doc:name="Output" doc:id="b61bc6b4-3585-4653-b2a4-7975c1ef3676">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Given Product Code is Deleted"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="postFlow" doc:id="794a5639-5f2e-4c12-9614-9bd249a72cba" >
+		<flow-ref doc:name="Fetch values from subFlow " doc:id="19d43443-e70d-417c-a9d3-50011d3d1b3d" name="subfolw"/>
+		<db:query-single doc:name="Fetch Max productCode" doc:id="5e987a87-3bcd-4c88-94c4-6d036777e98d" config-ref="Database_Config">
+			<db:sql ><![CDATA[select max(productCode) from Products]]></db:sql>
+		</db:query-single>
+		<ee:transform doc:name="Increment productCode" doc:id="348838c2-58cb-47a6-b0b7-6dc29a9972e7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	code: "P" ++ ((payload."max(productCode)"[1 to 4] as Number)+1)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:insert doc:name="Insert New Record" doc:id="96a9b566-2b95-4f4a-bff7-f41c17a2787d" config-ref="Database_Config">
+			<db:sql ><![CDATA[insert into Products(productCode,productName,productVendor,productDescription,quantityInStock,buyPrice) values(:code,:name,:vendor,:Desc,:stock,:price);
+]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	'code': payload.code,
+	'name': vars.name,
+	'vendor': vars.vendor,
+	'Desc': vars.Desc,
+	'stock': vars.stock,
+	'price':  vars.price
+	
+}]]]></db:input-parameters>
+		</db:insert>
+		<db:query-single doc:name="Fetch Max productCode" doc:id="ff8aa8ce-0dc3-4d0e-8050-8f8c34513e30" config-ref="Database_Config">
+			<db:sql ><![CDATA[select max(productCode) from Products;]]></db:sql>
+		</db:query-single>
+		<ee:transform doc:name="Output" doc:id="e3203d83-6aba-4aa9-b986-8221fb7aff0c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "New ProductCode is Added with Code " ++ payload."max(productCode)"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="201" doc:name="httpStatus" doc:id="b1d22bf4-b354-4119-9852-fd0106ef462c" variableName="httpStatus"/>
+	</flow>
+	<flow name="patchFlow" doc:id="2b16e1b6-122d-4fa0-9428-5319bf3d2ff1" >
+		<flow-ref doc:name="Fetch values from subflow" doc:id="9c61a835-0ed2-4dd0-895f-52cfbed0c609" name="subfolw"/>
+		<db:update doc:name="Update Fields" doc:id="52f21f61-89fb-46a5-9494-d030b374a5e8" config-ref="Database_Config">
+			<db:sql ><![CDATA[update Products set quantityInStock=:stock where productCode=:code;
+]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	'code': vars.productCode,
+    'stock': vars.stock,
+	
+	
+}]]]></db:input-parameters>
+		</db:update>
+		<ee:transform doc:name="Json Output" doc:id="d8352770-5152-43f4-bac2-535e7e4af5e7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Fields are Partially Updated "
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="putFlow" doc:id="cfad5a13-2c97-48f0-9799-e8f17a9029a3" >
+		<flow-ref doc:name="Fetch values from subFlow" doc:id="cbec84dd-0c4b-433c-81c1-569bcce9dc5c" name="subfolw"/>
+		<db:query-single doc:name="Fetch Record using productcode" doc:id="c9a9fee6-7842-4b23-a92f-71189516f26f" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from Products where productCode=:code;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	'code': vars.productCode
+}]]]></db:input-parameters>
+		</db:query-single>
+		<choice doc:name="Choice" doc:id="7f9cb6cd-a812-42c0-849b-9d8dcc946d66" >
+			<when expression="#[sizeOf(payload)&gt;0]">
+				<db:update doc:name="Update Record" doc:id="88ac2ef7-854b-4ec3-9d20-d3fd93ae4f72" config-ref="Database_Config">
+					<db:sql ><![CDATA[update Products set productName=:name,productVendor=:vendor,productDescription=:Desc,quantityInStock=:stock,buyPrice=:price where productCode=:code;
+]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	'code': vars.productCode,
+	'name': vars.name,
+	'vendor': vars.vendor,
+	'Desc': vars.Desc,
+	'stock': vars.stock,
+	'price':  vars.price
+	
+}]]]></db:input-parameters>
+				</db:update>
+			</when>
+			<otherwise >
+				<db:insert doc:name="Insert New Value" doc:id="461853f1-f5d0-414e-9939-dcf1d31fa4bd" config-ref="Database_Config">
+					<db:sql ><![CDATA[insert into Products(productCode,productName,productVendor,productDescription,quantityInStock,buyPrice) values(:code,:name,:vendor,:Desc,:stock,:price);
+]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	'code': vars.productCode,
+	'name': vars.name,
+	'vendor': vars.vendor,
+	'Desc': vars.Desc,
+	'stock': vars.stock,
+	'price':  vars.price
+	
+}]]]></db:input-parameters>
+				</db:insert>
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Output" doc:id="2314cce8-d60c-4c00-a3f1-68ded6dd5e99" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "productCode is Fully Updated"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="201" doc:name="httpStatus" doc:id="3a10f5a6-37f4-4def-9103-8cd8c3b07c23" variableName="httpStatus"/>
+	</flow>
+</mule>
