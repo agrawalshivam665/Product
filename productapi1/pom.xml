@@ -44,6 +44,7 @@
                         <applicationName>Product-project-Shivam</applicationName>
                         <objectStoreV2>true</objectStoreV2>
                     </cloudHubDeployment>
+				
 				 <sharedLibraries>
                         <sharedLibrary>
                             <groupId>mysql</groupId>
