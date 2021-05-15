@@ -44,8 +44,7 @@
                         <applicationName>Product-project-Shivam</applicationName>
                         <objectStoreV2>true</objectStoreV2>
                     </cloudHubDeployment>
-				
-				<sharedLibraries>
+				 <sharedLibraries>
                         <sharedLibrary>
                             <groupId>mysql</groupId>
                             <artifactId>mysql-connector-java</artifactId>
