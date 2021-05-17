@@ -146,7 +146,7 @@ output application/json
 		<db:query-single doc:name="Fetch Record using productcode" doc:id="c9a9fee6-7842-4b23-a92f-71189516f26f" config-ref="Database_Config">
 			<db:sql ><![CDATA[select * from Products where productCode=:code;]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
-	'code': vars.productCode
+	'code': vars.productCode default "P1010"
 }]]]></db:input-parameters>
 		</db:query-single>
 		<choice doc:name="Choice" doc:id="7f9cb6cd-a812-42c0-849b-9d8dcc946d66" >

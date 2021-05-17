@@ -102,9 +102,9 @@
 	</build>
 	<distributionManagement>
         <snapshotRepository>
-          <id>Product</id>
-          <name>Product</name>
-          <url>http://localhost:8091/repository/Product/</url>
+          <id>Order</id>
+          <name>Order</name>
+          <url>http://localhost:8091/repository/Order/</url>
         </snapshotRepository>
      </distributionManagement>
 
